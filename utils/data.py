@@ -21,11 +21,10 @@ def generate_copy_task_data(config):
         # Generate random sequence to copy (avoid using 0, that's our delimiter)
         sequence_to_copy = torch.randint(1, vocab_size, (copy_len,))
 
-        # Create delimiter (0 means "start copying")
-        delimiter = torch.tensor([0])
+        delimiter = torch.tensor([0], dtype=torch.long)
 
-        # Create prompt (what the model should fill in)
-        copy_prompt = torch.zeros(copy_len - 1)  # -1 because we'll predict the last token
+        # Create prompt
+        copy_prompt = torch.zeros(copy_len, dtype=torch.long)
 
         # Combine: [sequence, delimiter, prompt]
         input_seq = torch.cat([sequence_to_copy, delimiter, copy_prompt])
@@ -52,7 +51,7 @@ def generate_simple_lm_data(config):
     for _ in range(num_samples):
         # Create simple repeating pattern: [1,2,3,1,2,3,1,2,3...]
         pattern_len = np.random.randint(2, 5)  # Pattern length 2-4
-        pattern = torch.randint(1, vocab_size, (pattern_len,))
+        pattern = torch.randint(1, vocab_size, (pattern_len,), dtype=torch.long)
 
         # Repeat pattern to fill sequence
         full_seq = pattern.repeat((seq_len // pattern_len) + 1)[:seq_len]
@@ -81,7 +80,7 @@ def load_dataset(config):
 
     if dataset_name == 'copy_task':
         full_dataset = generate_copy_task_data(config)
-    elif dataset_name == 'simple_lm':
+    elif dataset_name == 'language_modeling':
         full_dataset = generate_simple_lm_data(config)
     else:
         raise ValueError(f"Unknown dataset: {dataset_name}")

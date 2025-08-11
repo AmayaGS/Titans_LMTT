@@ -1,24 +1,24 @@
 # config.yaml
 model:
-  d_model: 32                    # Small for testing
+  variant: "baseline"            # Options: baseline, MAC, MAG, MAL, LMM
+  d_model: 32
   n_heads: 2
-  n_layers: 2
-  memory_layers: 2               # Depth of neural memory (L_M)
-  persistent_memory_size: 8      # Size of persistent memory (N_p)
+  n_layers: 2                    # For baseline transformer
   vocab_size: 50
   max_seq_len: 128
 
-  # Architecture variant to use
-  variant: "MAC"                 # Options: MAC, MAG, MAL, LMM
+  # Titans-specific configs (ignored for baseline)
+  memory_layers: 2               # Depth of neural memory (L_M)
+  persistent_memory_size: 8      # Size of persistent memory (N_p)
 
-  # Memory-specific configs
+  # Architecture-specific configs
   memory:
-    window_size: 32              # For sliding window attention
+    window_size: 32              # For sliding window attention (MAG, MAL)
     segment_size: 64             # For MAC chunking
 
 training:
   batch_size: 4                  # Small for testing
-  learning_rate: 1e-3
+  learning_rate: 0.001
   weight_decay: 0.1
   max_epochs: 100
   gradient_clip: 1.0
@@ -29,7 +29,7 @@ training:
   warmup_steps: 100
 
 data:
-  dataset: "copy_task"           # Which toy dataset to use
+  dataset: "copy_task"           # which dataet/task to use [copy_task, language_modeling]
   seq_len: 64
   vocab_size: 10
   num_samples: 1000

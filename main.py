@@ -8,6 +8,8 @@ from pathlib import Path
 import yaml
 
 from utils.data import load_dataset, create_dataloader
+from models.baselines import SimpleTransformer
+from utils.training import train_epoch, evaluate, create_optimizer
 
 
 def parse_args():
@@ -39,11 +41,14 @@ def setup_logging(config):
     """Setup logging configuration."""
     log_level = getattr(logging, config['logging']['log_level'])
 
+    # Use the logs directory from config
+    log_file = Path(config['paths']['log_dir']) / 'training.log'
+
     logging.basicConfig(
         level=log_level,
         format='%(asctime)s - %(levelname)s - %(message)s',
         handlers=[
-            logging.FileHandler('training.log'),
+            logging.FileHandler(log_file),  # Now goes to ./logs/training.log
             logging.StreamHandler()
         ]
     )
@@ -55,6 +60,30 @@ def create_directories(config):
         path = Path(config['paths'][path_key])
         path.mkdir(parents=True, exist_ok=True)
         logging.info(f"Created directory: {path}")
+
+
+def create_model(config, device):
+    """Create model based on config variant."""
+    variant = config['model']['variant']
+
+    if variant == 'baseline':
+        model = SimpleTransformer(config)
+    # elif variant == 'MAC':
+    #     model = TitansMAC(config)
+    # elif variant == 'MAG':
+    #     model = TitansMAG(config)
+    # elif variant == 'MAL':
+    #     model = TitansMAL(config)
+    # elif variant == 'LMM':
+    #     model = TitansLMM(config)
+    else:
+        raise ValueError(f"Unknown model variant: {variant}")
+
+    model.to(device)
+    total_params = sum(p.numel() for p in model.parameters())
+    logging.info(f"Created {variant} model with {total_params:,} parameters")
+
+    return model
 
 
 def main():
@@ -79,10 +108,23 @@ def main():
     logging.info(f"Created train loader with {len(train_data)} samples")
     logging.info(f"Created test loader with {len(test_data)} samples")
 
+    # Create model and optimizer
+    model = create_model(config, device)
+    optimizer = create_optimizer(model, config)
 
-    # TODO: Create model
-    # TODO: Setup optimizer
-    # TODO: Training loop
+    # Training loop
+    logging.info("Starting training...")
+    for epoch in range(config['training']['max_epochs']):
+
+        train_loss = train_epoch(model, train_loader, optimizer, device, config)
+        test_loss, test_metrics = evaluate(model, test_loader, device, config)
+
+        # Log progress
+        if epoch % config['logging']['log_every'] == 0:
+            metrics_str = ", ".join([f"{k}: {v:.4f}" for k, v in test_metrics.items()])
+            logging.info(f"Epoch {epoch:3d}: Train Loss {train_loss:.4f}, Test Loss {test_loss:.4f}, {metrics_str}")
+
+    logging.info("Training complete!")
 
     logging.info("Training setup complete!")
 

@@ -66,6 +66,35 @@ def generate_simple_lm_data(config):
     return data
 
 
+def generate_needle_haystack_data(config):
+    """Find a special token in a long sequence - tests memory retrieval."""
+    num_samples = config['data']['num_samples']
+    seq_len = config['data']['seq_len']
+    vocab_size = config['data']['vocab_size']
+
+    data = []
+    needle_token = vocab_size - 1  # Special token
+
+    for _ in range(num_samples):
+        # Random sequence (haystack)
+        sequence = torch.randint(1, vocab_size - 1, (seq_len - 2,), dtype=torch.long)
+
+        # Insert needle at random position (avoid edges)
+        needle_pos = torch.randint(5, seq_len - 10, (1,)).item()
+        sequence[needle_pos] = needle_token
+
+        # Query: [sequence, needle_token] -> model should output position
+        input_seq = torch.cat([sequence, torch.tensor([needle_token], dtype=torch.long)])
+        target = torch.tensor([needle_pos], dtype=torch.long)
+
+        data.append((input_seq, target))
+
+    logging.info(f"Generated {num_samples} needle-in-haystack samples")
+    logging.info(f"Needle token: {needle_token}, sequence length: {seq_len}")
+
+    return data
+
+
 def split_dataset(dataset, train_ratio):
     """Simple train/test split."""
     n_train = int(len(dataset) * train_ratio)
@@ -82,6 +111,8 @@ def load_dataset(config):
         full_dataset = generate_copy_task_data(config)
     elif dataset_name == 'language_modeling':
         full_dataset = generate_simple_lm_data(config)
+    elif dataset_name == 'needle_haystack':
+        full_dataset = generate_needle_haystack_data(config)
     else:
         raise ValueError(f"Unknown dataset: {dataset_name}")
 

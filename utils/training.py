@@ -1,19 +1,16 @@
 # utils/training.py
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-
-
-def compute_associative_memory_loss(memory_output, target_values):
-    """
-    Associative memory loss from Eq. 12 in paper.
-    L(M; x_t) = ||M(k_t) - v_t||^2
-    """
-    return F.mse_loss(memory_output, target_values, reduction='sum') # TODO: check reduction type
 
 
 def compute_main_task_loss(logits, targets, task_type="copy_task"):
     """Main task loss (still cross-entropy for token prediction)."""
+
+    # Check for invalid targets
+    if targets.min() < 0 or targets.max() >= logits.shape[-1]:
+        print(f"ERROR: Invalid target indices! Range should be [0, {logits.shape[-1]})")
+        return torch.tensor(0.0, requires_grad=True)
+
     if task_type == "copy_task":
         # For copy task, only compute loss on the "copy" portion
         # Assuming format: [sequence, delimiter, copy_target]
@@ -39,6 +36,39 @@ def compute_main_task_loss(logits, targets, task_type="copy_task"):
             targets.view(-1)
         )
 
+    elif task_type == "needle_haystack":
+        # Position prediction - logits should be [batch, seq_len] for position classes
+        query_logits = logits[:, -1, :logits.size(1)]  # [batch, seq_len]
+        return nn.CrossEntropyLoss()(query_logits, targets.squeeze(-1))
+
+    else:
+        raise ValueError(f"Unknown task type: {task_type}")
+
+
+def compute_task_metrics(logits, targets, loss, task_type="copy_task"):
+    """Compute evaluation metrics (not used for training)."""
+    if task_type == "copy_task":
+        batch_size, seq_len, vocab_size = logits.shape
+        delimiter_pos = (targets == 0).nonzero(as_tuple=True)[1]
+
+        copy_logits = logits[:, delimiter_pos[0] + 1:]
+        copy_targets = targets[:, delimiter_pos[0] + 1:]
+
+        predictions = copy_logits.argmax(dim=-1)
+        accuracy = (predictions == copy_targets).float().mean()
+
+        return {"copy_accuracy": accuracy.item()}
+
+    elif task_type == "language_modeling":
+        return {"perplexity": torch.exp(loss).item()}
+
+    elif task_type == "needle_haystack":
+        # Position accuracy
+        query_logits = logits[:, -1, :logits.size(1)]
+        predictions = query_logits.argmax(dim=-1)
+        accuracy = (predictions == targets.squeeze(-1)).float().mean()
+        return {"position_accuracy": accuracy.item()}
+
     else:
         raise ValueError(f"Unknown task type: {task_type}")
 
@@ -53,7 +83,7 @@ def train_epoch(model, dataloader, optimizer, device, config):
         inputs, targets = inputs.to(device), targets.to(device)
 
         # Forward pass
-        logits = model(inputs)
+        logits = model(inputs, task_type=task_type)
 
         # Task-specific loss
         loss = compute_main_task_loss(logits, targets, task_type)
@@ -74,40 +104,40 @@ def train_epoch(model, dataloader, optimizer, device, config):
     return total_loss / len(dataloader)
 
 
-def compute_task_metrics(logits, targets, loss, task_type="copy_task"):
-    """Compute evaluation metrics (not used for training)."""
-    if task_type == "copy_task":
-        batch_size, seq_len, vocab_size = logits.shape
-        delimiter_pos = (targets == 0).nonzero(as_tuple=True)[1]
-
-        copy_logits = logits[:, delimiter_pos[0] + 1:]
-        copy_targets = targets[:, delimiter_pos[0] + 1:]
-
-        predictions = copy_logits.argmax(dim=-1)
-        accuracy = (predictions == copy_targets).float().mean()
-
-        return {"copy_accuracy": accuracy.item()}
-
-    elif task_type == "language_modeling":
-        return {"perplexity": torch.exp(loss).item()}
-
-
 def evaluate(model, dataloader, device, config):
-    """Evaluate with both loss and metrics."""
-    model.eval()
+    """Evaluate with test-time learning for Titans."""
+    model.eval()  # Set to eval mode for other components
     total_loss = 0
     all_metrics = []
 
-    with torch.no_grad():
+    # For Titans: Don't use torch.no_grad() - memory needs gradients!
+    is_titans = config['model']['variant'] in ['MAC', 'MAG', 'MAL', 'LMM']
+
+    if is_titans:
+        # Titans needs gradients for memory updates
         for inputs, targets in dataloader:
             inputs, targets = inputs.to(device), targets.to(device)
-            logits = model(inputs)
+
+            logits = model(inputs, task_type=config['data']['dataset'])
 
             loss = compute_main_task_loss(logits, targets, config['data']['dataset'])
-            metrics = compute_task_metrics(logits, targets, loss, config['data']['dataset'])  # Pass loss
+            metrics = compute_task_metrics(logits, targets, loss, config['data']['dataset'])
 
             total_loss += loss.item()
             all_metrics.append(metrics)
+    else:
+        # Baseline: use no_grad for efficiency
+        with torch.no_grad():
+            for inputs, targets in dataloader:
+                inputs, targets = inputs.to(device), targets.to(device)
+
+                logits = model(inputs, task_type=config['data']['dataset'])
+
+                loss = compute_main_task_loss(logits, targets, config['data']['dataset'])
+                metrics = compute_task_metrics(logits, targets, loss, config['data']['dataset'])
+
+                total_loss += loss.item()
+                all_metrics.append(metrics)
 
     # Average metrics
     avg_metrics = {}

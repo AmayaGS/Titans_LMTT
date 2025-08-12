@@ -31,14 +31,18 @@ class SimpleTransformer(nn.Module):
             nn.Linear(4 * self.d_model, self.d_model)
         )
 
-        # Output projection
-        self.output_proj = nn.Linear(self.d_model, self.vocab_size)
+        # Output projections for different tasks
+        if config['data']['dataset'] == "needle_haystack":
+            # For position prediction, we need a different output head
+            self.position_proj = nn.Linear(self.d_model, self.max_seq_len)
+        else:
+            self.output_proj = nn.Linear(self.d_model, self.vocab_size)
 
         # Layer norm
         self.ln1 = nn.LayerNorm(self.d_model)
         self.ln2 = nn.LayerNorm(self.d_model)
 
-    def forward(self, x):
+    def forward(self, x, task_type="copy_task"):
         batch_size, seq_len = x.shape
 
         # Embeddings
@@ -53,5 +57,7 @@ class SimpleTransformer(nn.Module):
         ffn_out = self.ffn(x)
         x = self.ln2(x + ffn_out)
 
-        # Output logits
-        return self.output_proj(x)
+        if task_type == "needle_haystack":
+            return self.position_proj(x)  # [batch_size, seq_len]
+        else:
+            return self.output_proj(x)  # vocab_size classes

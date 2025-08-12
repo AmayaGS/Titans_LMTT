@@ -11,6 +11,8 @@ from utils.data import load_dataset, create_dataloader
 from models.baselines import SimpleTransformer
 from utils.training import train_epoch, evaluate, create_optimizer
 
+from models.titan_models import TitansMAC  # Import Titans models
+
 
 def parse_args():
     """Parse command line arguments."""
@@ -68,14 +70,14 @@ def create_model(config, device):
 
     if variant == 'baseline':
         model = SimpleTransformer(config)
-    # elif variant == 'MAC':
-    #     model = TitansMAC(config)
+    elif variant == 'LMM':
+        model = TitansLMM(config)
+    elif variant == 'MAC':
+        model = TitansMAC(config)
     # elif variant == 'MAG':
     #     model = TitansMAG(config)
     # elif variant == 'MAL':
     #     model = TitansMAL(config)
-    # elif variant == 'LMM':
-    #     model = TitansLMM(config)
     else:
         raise ValueError(f"Unknown model variant: {variant}")
 

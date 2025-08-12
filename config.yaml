@@ -1,6 +1,6 @@
 # config.yaml
 model:
-  variant: "baseline"            # Options: baseline, MAC, MAG, MAL, LMM
+  variant: "MAC"            # Options: baseline, MAC, MAG, MAL, LMM
   d_model: 32
   n_heads: 2
   n_layers: 2                    # For baseline transformer
@@ -14,11 +14,11 @@ model:
   # Architecture-specific configs
   memory:
     window_size: 32              # For sliding window attention (MAG, MAL)
-    segment_size: 64             # For MAC chunking
+    segment_size: 32             # For MAC chunking
 
 training:
   batch_size: 4                  # Small for testing
-  learning_rate: 0.001
+  learning_rate: 0.001          # keeping it small to get nice curve on simple "toy" data
   weight_decay: 0.1
   max_epochs: 100
   gradient_clip: 1.0
@@ -29,8 +29,8 @@ training:
   warmup_steps: 100
 
 data:
-  dataset: "copy_task"           # which dataet/task to use [copy_task, language_modeling]
-  seq_len: 64
+  dataset: "copy_task"           # which dataset/task to use [copy_task, language_modeling, needle_haystack]
+  seq_len: 128
   vocab_size: 10
   num_samples: 1000
   train_ratio: 0.8

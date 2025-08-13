@@ -1,6 +1,7 @@
-# Titans Neural Memory Implementation
+# Titans - Learning to Memorize at Test Time
 
-A PyTorch implementation of the neural memory mechanism from "Titans: Learning to Memorize at Test Time" (Behrouz et al., 2024).
+A PyTorch implementation of the neural memory mechanism and Titans variants from "Titans: 
+Learning to Memorize at Test Time" (Behrouz et al., 2024).
 
 This implementation focuses on the core neural memory components that enable test-time adaptation through surprise-based learning, momentum mechanisms, and adaptive forgetting.
 

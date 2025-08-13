@@ -12,9 +12,7 @@ def compute_main_task_loss(logits, targets, task_type="copy_task"):
         return torch.tensor(0.0, requires_grad=True)
 
     if task_type == "copy_task":
-        # For copy task, only compute loss on the "copy" portion
         # Assuming format: [sequence, delimiter, copy_target]
-        # We want loss only on the copy_target part
         batch_size, seq_len, vocab_size = logits.shape
 
         # Find delimiter position (token 0)
@@ -92,7 +90,7 @@ def train_epoch(model, dataloader, optimizer, device, config):
         optimizer.zero_grad()
         loss.backward()
 
-        # Gradient clipping - this is because it's a sequence model and we want to avoid exploding gradients
+        # Gradient clipping - this is because we want to avoid exploding gradients
         torch.nn.utils.clip_grad_norm_(
             model.parameters(),
             config['training']['gradient_clip']
@@ -110,7 +108,7 @@ def evaluate(model, dataloader, device, config):
     total_loss = 0
     all_metrics = []
 
-    # For Titans: Don't use torch.no_grad() - memory needs gradients!
+    # For Titans - we need grad here - memory needs gradients
     is_titans = config['model']['variant'] in ['MAC', 'MAG', 'MAL', 'LMM']
 
     if is_titans:

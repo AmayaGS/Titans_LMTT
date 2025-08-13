@@ -7,11 +7,11 @@ model:
   vocab_size: 50
   max_seq_len: 128
 
-  # Titans-specific configs (ignored for baseline)
+  # Titans-specific configs
   memory_layers: 2               # Depth of neural memory (L_M)
   persistent_memory_size: 8      # Size of persistent memory (N_p)
 
-  # Architecture-specific configs
+#  # Architecture-specific configs
   memory:
     window_size: 32              # For sliding window attention (MAG, MAL)
     segment_size: 32             # For MAC chunking
@@ -20,17 +20,16 @@ training:
   batch_size: 4                  # Small for testing
   learning_rate: 0.001          # keeping it small to get nice curve on simple "toy" data
   weight_decay: 0.1
-  max_epochs: 100
+  max_epochs: 200
   gradient_clip: 1.0
 
   # Optimizer
   optimizer: "adamw"
   scheduler: "cosine"
-  warmup_steps: 100
 
 data:
   dataset: "copy_task"           # which dataset/task to use [copy_task, language_modeling, needle_haystack]
-  seq_len: 128
+  seq_len: 96
   vocab_size: 10
   num_samples: 1000
   train_ratio: 0.8

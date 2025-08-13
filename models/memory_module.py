@@ -6,7 +6,7 @@ import torch.nn.functional as F
 class NeuralMemory(nn.Module):
     """Simplified neural memory module for TitansMAC."""
 
-    def __init__(self, d_model, memory_layers=2):
+    def __init__(self, d_model, memory_layers=2, init_scale=0.02):
         super().__init__()
         self.d_model = d_model
         self.memory_layers = memory_layers
@@ -23,6 +23,12 @@ class NeuralMemory(nn.Module):
             if i < memory_layers - 1:
                 layers.append(nn.SiLU())
         self.memory_network = nn.Sequential(*layers)
+
+        # Initialize memory network with small weights
+        for module in self.memory_network:
+            if isinstance(module, nn.Linear):
+                nn.init.normal_(module.weight, std=init_scale)
+                nn.init.zeros_(module.bias)
 
         # Data-dependent parameters for momentum + forgetting
         self.alpha_proj = nn.Linear(d_model, 1)  # Forget gate α_t
@@ -68,7 +74,7 @@ class NeuralMemory(nn.Module):
 
         try:
             gradients = torch.autograd.grad(loss, self.memory_network.parameters(),
-                                            create_graph=False, retain_graph=False) # setting this to false to conserve memory when not chunking
+                                            create_graph=True, retain_graph=True) # setting this to false to conserve memory when not chunking
         except:
             return
 

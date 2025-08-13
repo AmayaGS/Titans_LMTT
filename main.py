@@ -10,6 +10,7 @@ import yaml
 
 from utils.data import load_dataset, create_dataloader
 from utils.training import train_epoch, evaluate, create_optimizer
+from utils.memory_check import check_memory_updates
 
 from models.baselines import SimpleTransformer # Import baseline model
 from models.titan_models import TitansMAC, TitansMAG, TitansMAL, TitansLMM  # Import Titans models
@@ -115,6 +116,8 @@ def main():
     # Create model and optimizer
     model = create_model(config, device)
     optimizer = create_optimizer(model, config)
+
+    check_memory_updates(model, config, device)
 
     # Training loop
     logging.info("Starting training...")

@@ -64,7 +64,7 @@ class NeuralMemory(nn.Module):
         Equations 9-10 and 13-14 from paper.
         """
         # Compute data-dependent parameters
-        alpha_t = torch.sigmoid(self.alpha_proj(x_t.mean(dim=1)))  # [0, 1]
+        alpha_t = torch.sigmoid(self.alpha_proj(x_t.mean(dim=1)))  # [0, 1]  # using x_t mean is likely a simplification
         theta_t = torch.sigmoid(self.theta_proj(x_t.mean(dim=1)))  # [0, 1]
         eta_t = torch.sigmoid(self.eta_proj(x_t.mean(dim=1)))  # [0, 1]
 
@@ -90,7 +90,7 @@ class NeuralMemory(nn.Module):
             self.surprise_momentum = torch.zeros_like(grad_flat)
 
         # Update surprise momentum: S_t = η_t S_{t-1} - θ_t ∇ℓ (Equation 10)
-        self.surprise_momentum = (eta_t.mean() * self.surprise_momentum -
+        self.surprise_momentum = (eta_t.mean() * self.surprise_momentum -    # likewise, using the mean here is a likely a simplfication
                                   theta_t.mean() * grad_flat)
 
         # Update memory parameters: M_t = (1 - α_t)M_{t-1} + S_t (Equation 13)

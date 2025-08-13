@@ -77,8 +77,9 @@ class TitansMAC(nn.Module):
         # Attention over combined sequence
         attn_out, _ = self.attention(combined, combined, combined)
 
-        # Update memory with attention output
-        self.neural_memory.forward(attn_out)
+        # Update memory with attention output (Equation 24)
+        self.neural_memory.forward(attn_out)  # Caveat: attn_out includes persistent memory, retrieved memory, and the original segment
+
 
         # Final memory readout (Equation 25)
         queries_final = self.neural_memory.W_Q(attn_out)

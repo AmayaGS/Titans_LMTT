@@ -1,7 +1,7 @@
 # config.yaml
 
 model:
-  variant: "MAC"                 # Options: baseline, MAC, MAG, MAL, LMM
+  variant: "LMM"                 # Options: baseline, MAC, MAG, MAL, LMM
   d_model: 32
   n_heads: 2
   n_layers: 2                    # For baseline transformer
@@ -12,14 +12,14 @@ model:
   memory_layers: 2               # Depth of neural memory (L_M)
   persistent_memory_size: 8      # Size of persistent memory (N_p)
 
-  # Segmentation-specific configs - not using them in this PoC
+  # Segmentation-specific configs - not using them in the PoC
   memory:
     window_size: 32              # I'd use this for setting up sliding window attention (MAG, MAL)
     segment_size: 32             # And this for setting up the MAC chunking
 
 training:
-  batch_size: 4
-  learning_rate: 0.0001          # keeping it small to get nice curve on "toy" datasets
+  batch_size: 1
+  learning_rate: 0.0001          # keeping it small to get a curve on the "toy" datasets
   weight_decay: 0.1
   max_epochs: 200
   gradient_clip: 1.0

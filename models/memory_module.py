@@ -1,10 +1,12 @@
+# models/memory_module.py
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 
 class NeuralMemory(nn.Module):
-    """Simplified neural memory module for TitansMAC."""
+    """Neural memory module for Titans"""
 
     def __init__(self, d_model, memory_layers=2, init_scale=0.02):
         super().__init__()
@@ -16,7 +18,7 @@ class NeuralMemory(nn.Module):
         self.W_V = nn.Linear(d_model, d_model, bias=False)
         self.W_Q = nn.Linear(d_model, d_model, bias=False)
 
-        # Memory MLP
+        # Memory MLP - 2 layers with SiLU activation apparently
         layers = []
         for i in range(memory_layers):
             layers.append(nn.Linear(d_model, d_model))
@@ -38,15 +40,15 @@ class NeuralMemory(nn.Module):
         # Initialize these to output small, reasonable values
         for proj in [self.alpha_proj, self.theta_proj, self.eta_proj]:
             nn.init.xavier_uniform_(proj.weight, gain=0.01)
-            nn.init.constant_(proj.bias, -2.0)  # sigmoid(-2) ≈ 0.12
+            nn.init.constant_(proj.bias, -2.0)  # sigmoid(-2) approx 0.12
 
-        # Track surprise momentum S_t
+        # Track surprise momentum S_t with no weight updates
         self.register_buffer('surprise_momentum', None)
 
     def compute_associative_loss(self, keys, values):
         """
         Compute associative memory loss: ℓ(M; x_t) = ||M(k_t) - v_t||²
-        Equation 12 from paper
+        This is the "inner loss" from Equation 12 in the paper
         """
         # Forward pass through memory network
         memory_output = self.memory_network(keys)  # M(k_t)
@@ -72,16 +74,13 @@ class NeuralMemory(nn.Module):
         if torch.isnan(loss):
             return
 
-        try:
-            gradients = torch.autograd.grad(loss, self.memory_network.parameters(),
-                                            create_graph=True, retain_graph=True) # setting this to false to conserve memory when not chunking
-        except:
-            return
+        gradients = torch.autograd.grad(loss, self.memory_network.parameters(),
+                                        create_graph=True, retain_graph=True)
 
         # Flatten gradients for momentum computation
         grad_flat = torch.cat([g.flatten() for g in gradients])
 
-        # Normalize gradients to prevent gradient explosion
+        # Normalize gradients to help prevent gradient explosion
         grad_norm = grad_flat.norm()
         if grad_norm > 1.0:
             grad_flat = grad_flat / grad_norm
@@ -107,7 +106,6 @@ class NeuralMemory(nn.Module):
 
                 param_idx += param_size
 
-                # Safety check
                 if torch.isnan(param).any():
                     print("NaN in parameter after momentum update!")
                     return

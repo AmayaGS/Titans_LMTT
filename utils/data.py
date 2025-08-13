@@ -1,13 +1,16 @@
 # utils/data.py
+
 import torch
 import numpy as np
 import logging
 
+# I'm generating small synthetic datasets for different tasks: copy-task,
+# simple language modeling, and needle-in-a-haystack.
 
 def generate_copy_task_data(config):
     """
     Generate copy task dataset: [1,2,3,4,0,?,?,?,?] -> [1,2,3,4,0,1,2,3,4]
-    The model should learn to copy the sequence after seeing the delimiter (0).
+    The model should learn to copy the sequence after seeing the delimiter (0)
     """
     num_samples = config['data']['num_samples']
     seq_len = config['data']['seq_len']
@@ -35,14 +38,14 @@ def generate_copy_task_data(config):
         data.append((input_seq, target_seq))
 
     logging.info(f"Generated {num_samples} copy task samples")
-    logging.info(f"Sample input length: {len(data[0][0])}")
+    logging.info(f"Sample input length: {len(data[0][0]) + 1}")
     logging.info(f"Copy length: {copy_len}")
 
     return data
 
 
 def generate_simple_lm_data(config):
-    """Generate simple language modeling data with repeating patterns."""
+    """Generate simple language modeling data with repeating patterns"""
     num_samples = config['data']['num_samples']
     seq_len = config['data']['seq_len']
     vocab_size = config['data']['vocab_size']
@@ -67,7 +70,7 @@ def generate_simple_lm_data(config):
 
 
 def generate_needle_haystack_data(config):
-    """Find a special token in a long sequence - tests memory retrieval."""
+    """Find a special token in a long sequence - tests memory retrieval"""
     num_samples = config['data']['num_samples']
     seq_len = config['data']['seq_len']
     vocab_size = config['data']['vocab_size']
@@ -96,7 +99,7 @@ def generate_needle_haystack_data(config):
 
 
 def split_dataset(dataset, train_ratio):
-    """Simple train/test split."""
+    """Simple train/test split"""
     n_train = int(len(dataset) * train_ratio)
     train_data = dataset[:n_train]
     test_data = dataset[n_train:]
@@ -104,7 +107,7 @@ def split_dataset(dataset, train_ratio):
 
 
 def load_dataset(config):
-    """Load and split dataset."""
+    """Load and split dataset"""
     dataset_name = config['data']['dataset']
 
     if dataset_name == 'copy_task':
@@ -124,7 +127,7 @@ def load_dataset(config):
 
 
 def create_dataloader(dataset, batch_size, shuffle=True):
-    """Create PyTorch DataLoader from dataset."""
+    """Create PyTorch DataLoader from dataset"""
     from torch.utils.data import DataLoader, TensorDataset
 
     # Separate inputs and targets

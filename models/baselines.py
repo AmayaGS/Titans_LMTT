@@ -1,11 +1,11 @@
 # models/baseline.py
+
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 
 class SimpleTransformer(nn.Module):
-    """Simple transformer baseline for comparison with Titans."""
+    """Simple transformer baseline for comparison with Titans"""
 
     def __init__(self, config):
         super().__init__()

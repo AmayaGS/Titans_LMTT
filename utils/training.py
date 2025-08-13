@@ -1,15 +1,12 @@
 # utils/training.py
+
 import torch
 import torch.nn as nn
+import logging
 
 
 def compute_main_task_loss(logits, targets, task_type="copy_task"):
-    """Main task loss (still cross-entropy for token prediction)."""
-
-    # Check for invalid targets
-    if targets.min() < 0 or targets.max() >= logits.shape[-1]:
-        print(f"ERROR: Invalid target indices! Range should be [0, {logits.shape[-1]})")
-        return torch.tensor(0.0, requires_grad=True)
+    """Main task loss - outer loop is standard cross-entropy loss"""
 
     if task_type == "copy_task":
         # Assuming format: [sequence, delimiter, copy_target]
@@ -44,8 +41,9 @@ def compute_main_task_loss(logits, targets, task_type="copy_task"):
 
 
 def compute_task_metrics(logits, targets, loss, task_type="copy_task"):
-    """Compute evaluation metrics (not used for training)."""
-    if task_type == "copy_task":
+    """Compute evaluation metrics for the copy-task, language modelling, needle in a haystack"""
+
+    if task_type == "copy_task": # probably could reuse compute_main_task_loss
         batch_size, seq_len, vocab_size = logits.shape
         delimiter_pos = (targets == 0).nonzero(as_tuple=True)[1]
 
@@ -83,14 +81,14 @@ def train_epoch(model, dataloader, optimizer, device, config):
         # Forward pass
         logits = model(inputs, task_type=task_type)
 
-        # Task-specific loss
+        # outer loop loss
         loss = compute_main_task_loss(logits, targets, task_type)
 
         # Backward pass
         optimizer.zero_grad()
         loss.backward()
 
-        # Gradient clipping - this is because we want to avoid exploding gradients
+        # Gradient clipping here - to avoid exploding gradients, stabilise learning
         torch.nn.utils.clip_grad_norm_(
             model.parameters(),
             config['training']['gradient_clip']
@@ -103,7 +101,7 @@ def train_epoch(model, dataloader, optimizer, device, config):
 
 
 def evaluate(model, dataloader, device, config):
-    """Evaluate with test-time learning for Titans."""
+    """Evaluate models. No grad for baseline, with grad for test-time learning with Titans."""
     model.eval()  # Set to eval mode for other components
     total_loss = 0
     all_metrics = []
@@ -112,7 +110,6 @@ def evaluate(model, dataloader, device, config):
     is_titans = config['model']['variant'] in ['MAC', 'MAG', 'MAL', 'LMM']
 
     if is_titans:
-        # Titans needs gradients for memory updates
         for inputs, targets in dataloader:
             inputs, targets = inputs.to(device), targets.to(device)
 
@@ -124,7 +121,7 @@ def evaluate(model, dataloader, device, config):
             total_loss += loss.item()
             all_metrics.append(metrics)
     else:
-        # Baseline: use no_grad for efficiency
+        # Baseline - no_grad here as no test time learning
         with torch.no_grad():
             for inputs, targets in dataloader:
                 inputs, targets = inputs.to(device), targets.to(device)
@@ -155,6 +152,8 @@ def create_optimizer(model, config):
             lr=config['training']['learning_rate'],
             weight_decay=config['training']['weight_decay']
         )
+        logging.info(f"Using AdamW optimizer with lr={config['training']['learning_rate']}, "
+                     f"weight_decay={config['training']['weight_decay']}, batch size: {config['training']['batch_size']}")
     else:
         raise ValueError(f"Unknown optimizer: {optimizer_name}")
 

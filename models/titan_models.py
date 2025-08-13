@@ -1,10 +1,12 @@
+# models/titan_models.py
+
 import torch
 import torch.nn as nn
 
 from models.memory_module import NeuralMemory
 
 class TitansMAC(nn.Module):
-    """Memory as Context (MAC) architecture - simplified version."""
+    """Memory as Context (MAC) architecture - simplified version, no chunking."""
 
     def __init__(self, config):
         super().__init__()
@@ -40,7 +42,6 @@ class TitansMAC(nn.Module):
 
         # Gate for combining attention + memory readout (Equation 25)
         self.gate_proj = nn.Linear(2 * self.d_model, self.d_model)
-
         nn.init.xavier_uniform_(self.gate_proj.weight, gain=0.1)
         nn.init.constant_(self.gate_proj.bias, -0.5)
 
@@ -106,7 +107,7 @@ class TitansMAC(nn.Module):
 
 
 class TitansMAG(nn.Module):
-    """Memory as Gate (MAG) architecture."""
+    """Memory as Gate (MAG) architecture - simplified version, no sliding window"""
 
     def __init__(self, config):
         super().__init__()
@@ -167,7 +168,7 @@ class TitansMAG(nn.Module):
         persistent_expanded = self.persistent_memory.unsqueeze(0).expand(batch_size, -1, -1)
         x_with_persistent = torch.cat([persistent_expanded, x], dim=1)
 
-        # Branch 1: Sliding window attention (Equation 27)
+        # Branch 1: Sliding window attention (Equation 27) # TODO: would need to add the sliding-window attention to match paper
         # SW-Attn*(x̃) - simplified as regular attention
         attn_out, _ = self.attention(x_with_persistent, x_with_persistent, x_with_persistent)
 
@@ -187,7 +188,7 @@ class TitansMAG(nn.Module):
         if memory_branch.size(1) != seq_len:
             memory_branch = memory_branch[:, :seq_len, :]
 
-        # Combine branches with learnable gating (Equation 28: ⊗)
+        # Combine branches with learnable gating (Equation 28)
         gate_input = torch.cat([attention_branch, memory_branch], dim=-1)
         gate = torch.sigmoid(self.gate_proj(gate_input))
         combined_output = gate * attention_branch + (1 - gate) * memory_branch
@@ -204,7 +205,7 @@ class TitansMAG(nn.Module):
 
 
 class TitansMAL(nn.Module):
-    """Memory as Layer (MAL) architecture."""
+    """Memory as Layer (MAL) architecture - simplified version, no sliding window"""
 
     def __init__(self, config):
         super().__init__()
@@ -230,7 +231,7 @@ class TitansMAL(nn.Module):
             torch.randn(config['model']['persistent_memory_size'], self.d_model) * 0.02
         )
 
-        # Sliding window attention (processes memory output)
+        # Sliding window attention - just using standard MHSA here   # TODO: would need to add the sliding-window attention to match paper
         self.attention = nn.MultiheadAttention(
             self.d_model,
             config['model']['n_heads'],
@@ -282,7 +283,7 @@ class TitansMAL(nn.Module):
 
 
 class TitansLMM(nn.Module):
-    """Long-term Memory Module only (no attention)."""
+    """Long-term Memory Module only (no attention)"""
 
     def __init__(self, config):
         super().__init__()

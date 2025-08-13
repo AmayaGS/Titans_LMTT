@@ -1,6 +1,7 @@
 # config.yaml
+
 model:
-  variant: "MAC"            # Options: baseline, MAC, MAG, MAL, LMM
+  variant: "MAC"                 # Options: baseline, MAC, MAG, MAL, LMM
   d_model: 32
   n_heads: 2
   n_layers: 2                    # For baseline transformer
@@ -11,21 +12,21 @@ model:
   memory_layers: 2               # Depth of neural memory (L_M)
   persistent_memory_size: 8      # Size of persistent memory (N_p)
 
-#  # Architecture-specific configs
+  # Segmentation-specific configs - not using them in this PoC
   memory:
-    window_size: 32              # For sliding window attention (MAG, MAL)
-    segment_size: 32             # For MAC chunking
+    window_size: 32              # I'd use this for setting up sliding window attention (MAG, MAL)
+    segment_size: 32             # And this for setting up the MAC chunking
 
 training:
-  batch_size: 4                  # Small for testing
-  learning_rate: 0.001          # keeping it small to get nice curve on simple "toy" data
+  batch_size: 4
+  learning_rate: 0.0001          # keeping it small to get nice curve on "toy" datasets
   weight_decay: 0.1
   max_epochs: 200
   gradient_clip: 1.0
 
   # Optimizer
   optimizer: "adamw"
-  scheduler: "cosine"
+#  scheduler: "cosine"           # Uncomment if you want to use a scheduler
 
 data:
   dataset: "copy_task"           # which dataset/task to use [copy_task, language_modeling, needle_haystack]
@@ -41,10 +42,10 @@ seed: 42
 logging:
   log_level: "INFO"
   log_every: 10
-  save_every: 50
+#  save_every: 50                # Uncomment if you want to save checkpoints every N steps
+
 
 # Paths
 paths:
-  data_dir: "./data"
-  model_dir: "./models"
+  data_dir: "./data"             # not using this atm as creating synthetic data, but downloaded data would go here.
   log_dir: "./logs"

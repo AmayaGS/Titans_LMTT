@@ -1,4 +1,5 @@
 # main.py
+
 import argparse
 import logging
 import random
@@ -8,14 +9,14 @@ from pathlib import Path
 import yaml
 
 from utils.data import load_dataset, create_dataloader
-from models.baselines import SimpleTransformer
 from utils.training import train_epoch, evaluate, create_optimizer
 
+from models.baselines import SimpleTransformer # Import baseline model
 from models.titan_models import TitansMAC, TitansMAG, TitansMAL, TitansLMM  # Import Titans models
 
 
 def parse_args():
-    """Parse command line arguments."""
+    """Parse command line arguments"""
     parser = argparse.ArgumentParser(description='Train Titans Model')
     parser.add_argument('--config', default='config.yaml',
                         help='Path to config file')
@@ -25,47 +26,48 @@ def parse_args():
 
 
 def load_config(config_path):
-    """Load configuration from YAML file."""
+    """Load configuration from YAML file"""
     with open(config_path, 'r') as f:
         return yaml.safe_load(f)
 
 
 def set_seed(seed):
-    """Set random seeds for reproducibility."""
+    """Set random seeds so it's reproducible"""
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
 
 
 def setup_logging(config):
-    """Setup logging configuration."""
+    """Setup logging configs"""
     log_level = getattr(logging, config['logging']['log_level'])
 
     # Use the logs directory from config
-    log_file = Path(config['paths']['log_dir']) / 'training.log'
+    log_file = Path(config['paths']['log_dir']) / f"training_{config['model']['variant']}_{config['data']['dataset']}.log" # would need to update this for different
 
     logging.basicConfig(
         level=log_level,
         format='%(asctime)s - %(levelname)s - %(message)s',
         handlers=[
-            logging.FileHandler(log_file),  # Now goes to ./logs/training.log
+            logging.FileHandler(log_file),
             logging.StreamHandler()
         ]
     )
 
 
 def create_directories(config):
-    """Create necessary directories for saving data, models, and logs."""
-    for path_key in ['data_dir', 'model_dir', 'log_dir']:
+    """Create directories for saving data and logs"""
+    for path_key in ['data_dir', 'log_dir']:
         path = Path(config['paths'][path_key])
         path.mkdir(parents=True, exist_ok=True)
         logging.info(f"Created directory: {path}")
 
 
 def create_model(config, device):
-    """Create model based on config variant."""
+    """Create model based on config variant"""
     variant = config['model']['variant']
 
     if variant == 'baseline':
@@ -83,13 +85,13 @@ def create_model(config, device):
 
     model.to(device)
     total_params = sum(p.numel() for p in model.parameters())
-    logging.info(f"Created {variant} model with {total_params:,} parameters")
+    logging.info(f"Created mini {variant} model with {total_params:,} parameters")
 
     return model
 
 
 def main():
-    """Main training function."""
+    """Main training function"""
     args = parse_args()
     config = load_config(args.config)
 
@@ -104,7 +106,7 @@ def main():
 
     # Load dataset
     logging.info("Loading dataset...")
-    train_data, test_data = load_dataset(config)  # NOTE: I'm only defining train/test because I won't be doing any hyperparameter tuning here
+    train_data, test_data = load_dataset(config)  # I'm only defining train/test because I won't be doing any hyperparameter tuning here
     train_loader = create_dataloader(train_data, config['training']['batch_size'])
     test_loader = create_dataloader(test_data, config['training']['batch_size'], shuffle=False)
     logging.info(f"Created train loader with {len(train_data)} samples")

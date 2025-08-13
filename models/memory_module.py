@@ -75,7 +75,7 @@ class NeuralMemory(nn.Module):
             return
 
         gradients = torch.autograd.grad(loss, self.memory_network.parameters(),
-                                        create_graph=False, retain_graph=False)
+                                        create_graph=True, retain_graph=True)
 
         # Flatten gradients for momentum computation
         grad_flat = torch.cat([g.flatten() for g in gradients])

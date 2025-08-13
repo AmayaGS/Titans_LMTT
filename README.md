@@ -5,6 +5,23 @@ Learning to Memorize at Test Time" (Behrouz et al., 2024).
 
 This implementation focuses on the core neural memory components that enable test-time adaptation through surprise-based learning, momentum mechanisms, and adaptive forgetting.
 
+## Implementation Notes
+
+This is a proof-of-concept implementation focusing on the core neural memory mechanisms. Some simplifications compared to the original paper:
+
+- Uses full sequence processing instead of chunked segmentation
+- Standard attention instead of sliding window attention
+- Small-scale synthetic tasks for rapid experimentation
+
+The goal is to validate the mathematical correctness of the memory mechanisms rather than achieve scalable performance.
+
+## Technical Report
+
+For detailed explanation of the neural memory mechanism, mathematical formulation, and implementation choices, see:
+
+**[📋 Technical Report](TECHNICAL_REPORT.md)**
+
+
 ## Quick Start
 
 ```bash
@@ -31,10 +48,10 @@ pip install torch==2.5.1 --index-url https://download.pytorch.org/whl/cu124
 ```
 
 ## Run with default configuration (MAC variant on copy task)
-`python main.py`
+```python main.py```
 
 ## Try different model variants
-`python main.py --config config.yaml  # Edit config.yaml to change settings`
+```python main.py --config config.yaml  # Edit config.yaml to change settings```
 
 ## Configuration
 
@@ -90,12 +107,6 @@ training:
 - **Test-Time Adaptation**: Memory updates during evaluation  
 - **Multiple Integration Strategies**: Four architectural variants  
 
-## Technical Details
-
-For detailed explanation of the neural memory mechanism, mathematical formulation, and implementation choices, see:
-
-**[📋 Technical Report](TECHNICAL_REPORT.md)**
-
 ## Project Structure
 
 ```
@@ -114,15 +125,7 @@ Titans_LTMM/
     └── memory_check.py      # check memory is updating at test time
 ```
 
-## Implementation Notes
 
-This is a proof-of-concept implementation focusing on the core neural memory mechanisms. Some simplifications compared to the original paper:
-
-- Uses full sequence processing instead of chunked segmentation
-- Standard attention instead of sliding window attention
-- Small-scale synthetic tasks for rapid experimentation
-
-The goal is to validate the mathematical correctness of the memory mechanisms rather than achieve state-of-the-art performance.
 
 ### Example Output
 
@@ -132,7 +135,7 @@ Epoch  50: Train Loss 0.8901, Test Loss 0.9123, copy_accuracy: 0.8750
 Epoch 100: Train Loss 0.2345, Test Loss 0.2567, copy_accuracy: 0.9375
 ```
 
-##Citation
+## Citation
 
 ```bibtex
 

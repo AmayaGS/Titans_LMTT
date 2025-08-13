@@ -30,7 +30,7 @@ training:
 #  scheduler: "cosine"           # Uncomment if you want to use a scheduler
 
 data:
-  dataset: "copy_task"           # which dataset/task to use [copy_task, language_modeling, needle_haystack]
+  dataset: "needle_haystack"           # which dataset/task to use [copy_task, language_modeling, needle_haystack]
   seq_len: 64
   vocab_size: 10
   num_samples: 1000
@@ -50,3 +50,4 @@ logging:
 paths:
   data_dir: "./data"             # not using this atm as creating synthetic data, but downloaded data would go here.
   log_dir: "./logs"
+  results_dir: "./results"

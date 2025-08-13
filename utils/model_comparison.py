@@ -9,7 +9,7 @@ import logging
 def save_results(results, config):
     """Save results to JSON file."""
     dataset = config['data']['dataset']
-    results_file = f"results_{dataset}.json"
+    results_file = f"results/results_{dataset}.json"
 
     # Convert to JSON-serializable format
     json_results = {}
@@ -29,7 +29,7 @@ def save_results(results, config):
 def load_existing_results(config):
     """Load existing results if they exist."""
     dataset = config['data']['dataset']
-    results_file = f"results_{dataset}.json"
+    results_file = f"results/results_{dataset}.json"
 
     if os.path.exists(results_file):
         try:
@@ -186,7 +186,7 @@ def plot_comparison_results(results, config):
     plt.subplots_adjust(bottom=0.25)  # Make room for legend
 
     # Save figure
-    fig_name = f"titans_comparison_{dataset}.png"
+    fig_name = f"results/titans_comparison_{dataset}.png"
     plt.savefig(fig_name, dpi=300, bbox_inches='tight')
     print(f"✓ Saved comparison plot: {fig_name}")
     plt.show()

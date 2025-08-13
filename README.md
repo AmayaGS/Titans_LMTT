@@ -24,7 +24,7 @@ python -m venv titans_env
 source titans_env/bin/activate
 
 # Install dependencies
-pip install torch pyyaml numpy
+pip install pyyaml numpy
 
 # PyTorch with cuda capabilities
 pip install torch==2.5.1 --index-url https://download.pytorch.org/whl/cu124

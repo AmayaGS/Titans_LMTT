@@ -11,6 +11,7 @@ import yaml
 from utils.data import load_dataset, create_dataloader
 from utils.training import train_epoch, evaluate, create_optimizer
 from utils.memory_check import check_memory_updates
+from utils.model_comparison import run_all_variants_comparison, plot_comparison_results
 
 from models.baselines import SimpleTransformer # Import baseline model
 from models.titan_models import TitansMAC, TitansMAG, TitansMAL, TitansLMM  # Import Titans models
@@ -99,41 +100,49 @@ def main():
     set_seed(config['seed'])
     setup_logging(config)
     create_directories(config)
-
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    logging.info(f"Using device: {device}")
-    logging.info(f"Model variant: {config['model']['variant']}")
-    logging.info(f"Dataset: {config['data']['dataset']}")
 
-    # Load dataset
-    logging.info("Loading dataset...")
-    train_data, test_data = load_dataset(config)  # I'm only defining train/test because I won't be doing any hyperparameter tuning here
-    train_loader = create_dataloader(train_data, config['training']['batch_size'])
-    test_loader = create_dataloader(test_data, config['training']['batch_size'], shuffle=False)
-    logging.info(f"Created train loader with {len(train_data)} samples")
-    logging.info(f"Created test loader with {len(test_data)} samples")
+    run_comparison = config['training'].get('run_comparison', False)
 
-    # Create model and optimizer
-    model = create_model(config, device)
-    optimizer = create_optimizer(model, config)
+    if run_comparison:
+        # Run all variants and plot comparison
+        results = run_all_variants_comparison(config, device)
+        plot_comparison_results(results, config)
+    else:
 
-    check_memory_updates(model, config, device)
+        logging.info(f"Using device: {device}")
+        logging.info(f"Model variant: {config['model']['variant']}")
+        logging.info(f"Dataset: {config['data']['dataset']}")
 
-    # Training loop
-    logging.info("Starting training...")
-    for epoch in range(config['training']['max_epochs']):
+        # Load dataset
+        logging.info("Loading dataset...")
+        train_data, test_data = load_dataset(config)  # I'm only defining train/test because I won't be doing any hyperparameter tuning here
+        train_loader = create_dataloader(train_data, config['training']['batch_size'])
+        test_loader = create_dataloader(test_data, config['training']['batch_size'], shuffle=False)
+        logging.info(f"Created train loader with {len(train_data)} samples")
+        logging.info(f"Created test loader with {len(test_data)} samples")
 
-        train_loss = train_epoch(model, train_loader, optimizer, device, config)
-        test_loss, test_metrics = evaluate(model, test_loader, device, config)
+        # Create model and optimizer
+        model = create_model(config, device)
+        optimizer = create_optimizer(model, config)
 
-        # Log progress
-        if epoch % config['logging']['log_every'] == 0:
-            metrics_str = ", ".join([f"{k}: {v:.4f}" for k, v in test_metrics.items()])
-            logging.info(f"Epoch {epoch:3d}: Train Loss {train_loss:.4f}, Test Loss {test_loss:.4f}, {metrics_str}")
+        check_memory_updates(model, config, device)
 
-    logging.info("Training complete!")
+        # Training loop
+        logging.info("Starting training...")
+        for epoch in range(config['training']['max_epochs']):
 
-    logging.info("Training setup complete!")
+            train_loss = train_epoch(model, train_loader, optimizer, device, config)
+            test_loss, test_metrics = evaluate(model, test_loader, device, config)
+
+            # Log progress
+            if epoch % config['logging']['log_every'] == 0:
+                metrics_str = ", ".join([f"{k}: {v:.4f}" for k, v in test_metrics.items()])
+                logging.info(f"Epoch {epoch:3d}: Train Loss {train_loss:.4f}, Test Loss {test_loss:.4f}, {metrics_str}")
+
+        logging.info("Training complete!")
+
+        logging.info("Training setup complete!")
 
 
 if __name__ == "__main__":

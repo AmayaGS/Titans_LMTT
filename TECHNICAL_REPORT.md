@@ -229,3 +229,17 @@ The synthetic tasks provide controlled environments for verifying that the memor
 
 **Data-Dependent Parameters:** Computed via learned projections with sigmoid activation, using input mean pooling to generate scalar values applied batch-wise.
 
+## Results
+
+<div align="center">
+<img src="results/titans_comparison_copy_task.png" width="50%" height="50%">
+</div>
+
+<div align="center">
+<img src="results/titans_comparison_language_modeling.png" width="50%" height="50%">
+</div>
+
+<div align="center">
+<img src="results/titans_comparison_needle_haystack.png" width="50%" height="50%">
+</div>
+

@@ -6,13 +6,17 @@ import torch.nn as nn
 from models.memory_module import NeuralMemory
 
 class TitansMAC(nn.Module):
-    """Memory as Context (MAC) architecture - simplified version, no chunking."""
+    """
+    Memory as Context (MAC) architecture - simplified version, no chunking.
+
+    Input → [Persistent || Retrieved || Input] → Attention → Update Memory → Final Readout → Gate Combine
+    """
 
     def __init__(self, config):
         super().__init__()
         self.d_model = config['model']['d_model']
-        self.vocab_size = config['model']['vocab_size']
-        self.max_seq_len = config['model']['max_seq_len']
+        self.vocab_size = config['model']['vocab_size'] # need to fix this to match the data vocab size in the config
+        self.max_seq_len = config['model']['max_seq_len'] # need to fix this to match the data max sequence length in the config
         self.segment_size = config['model']['memory']['segment_size']
 
         # Embeddings
@@ -81,9 +85,9 @@ class TitansMAC(nn.Module):
         self.neural_memory.forward(attn_out)  # Caveat: attn_out includes persistent memory, retrieved memory, and the original segment
 
 
-        # Final memory readout (Equation 25)
-        queries_final = self.neural_memory.W_Q(attn_out)
-        final_memory_readout = self.neural_memory.retrieve_memory(queries_final)
+        # Retrieve from updated final memory readout (Equation 25)
+        queries_final = self.neural_memory.W_Q(attn_out)  # project query to query updated memory
+        final_memory_readout = self.neural_memory.retrieve_memory(queries_final)  # forward pass through NM w/ weight updates
 
         # # Combine attention + memory (⊗ operation)
         # combined_output = attn_out + final_memory_readout
@@ -94,7 +98,7 @@ class TitansMAC(nn.Module):
         combined_output = gate * attn_out + (1 - gate) * final_memory_readout
 
         # Extract output for original sequence length
-        output = combined_output[:, -seq_len:]
+        output = combined_output[:, -seq_len:]  # extracting only the outputs corresponding to the original input sequence
 
         # Layer norm and projection
         output = self.ln(output)
@@ -108,7 +112,13 @@ class TitansMAC(nn.Module):
 
 
 class TitansMAG(nn.Module):
-    """Memory as Gate (MAG) architecture - simplified version, no sliding window"""
+    """
+    Memory as Gate (MAG) architecture - simplified version, no sliding window
+
+    Input → [Persistent || Input] → ┌─ Attention Branch ─┐
+                                 │                   ├─ Gate Combine → Output
+                                 └─ Memory Branch ──┘
+    """
 
     def __init__(self, config):
         super().__init__()
@@ -206,7 +216,12 @@ class TitansMAG(nn.Module):
 
 
 class TitansMAL(nn.Module):
-    """Memory as Layer (MAL) architecture - simplified version, no sliding window"""
+    """
+    Memory as Layer (MAL) architecture - simplified version, no sliding window
+
+    Input → [Persistent || Input] → Memory Layer → Attention Layer → Output
+
+    """
 
     def __init__(self, config):
         super().__init__()
@@ -284,7 +299,11 @@ class TitansMAL(nn.Module):
 
 
 class TitansLMM(nn.Module):
-    """Long-term Memory Module only (no attention)"""
+    """
+    Long-term Memory Module only (no attention)
+
+    Input → Memory Only → Output
+    """
 
     def __init__(self, config):
         super().__init__()

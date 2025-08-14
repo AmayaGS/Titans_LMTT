@@ -53,7 +53,7 @@ class NeuralMemory(nn.Module):
         # Forward pass through memory network
         memory_output = self.memory_network(keys)  # M(k_t)
 
-        # L2 loss (no reduction to match paper: ||M(k_t) - v_t||²)
+        # L2 loss (no reduction to match paper: ||M(k_t) - v_t||²) - bit weird?
         loss = F.mse_loss(memory_output, values, reduction='sum')
 
         return loss
@@ -64,8 +64,11 @@ class NeuralMemory(nn.Module):
         Equations 9-10 and 13-14 from paper.
         """
         # Compute data-dependent parameters
+        # forget gate weight
         alpha_t = torch.sigmoid(self.alpha_proj(x_t.mean(dim=1)))  # [0, 1]  # using x_t mean is likely a simplification
-        theta_t = torch.sigmoid(self.theta_proj(x_t.mean(dim=1)))  # [0, 1]
+        # current surprise, scaling gradient contribution
+        theta_t = torch.sigmoid(self.theta_proj(x_t.mean(dim=1)))  # [0, 1]  # it's a sequence-level summary vector for each batch item
+        # historical surprise, controlling momentum direction
         eta_t = torch.sigmoid(self.eta_proj(x_t.mean(dim=1)))  # [0, 1]
 
         # Compute associative memory loss and gradients
@@ -75,7 +78,7 @@ class NeuralMemory(nn.Module):
             return
 
         gradients = torch.autograd.grad(loss, self.memory_network.parameters(),
-                                        create_graph=True, retain_graph=True)
+                                        create_graph=False, retain_graph=False)   #  1st order derivative calculating local slope loss landscape in mem module
 
         # Flatten gradients for momentum computation
         grad_flat = torch.cat([g.flatten() for g in gradients])
@@ -95,13 +98,13 @@ class NeuralMemory(nn.Module):
 
         # Update memory parameters: M_t = (1 - α_t)M_{t-1} + S_t (Equation 13)
         param_idx = 0
-        with torch.no_grad():
+        with torch.no_grad():  # This stops the updates to NM from affecting the main training gradients
             for param in self.memory_network.parameters():
                 param_size = param.numel()
-                param_update = self.surprise_momentum[param_idx:param_idx + param_size]
+                param_update = self.surprise_momentum[param_idx:param_idx + param_size] # updating each parameter by section of the network
                 param_update = param_update.view(param.shape)
 
-                # Apply forgetting + momentum update
+                # Apply forgetting + momentum update - effectively saying which past parameter memory to keep or not
                 param.data = (1 - alpha_t.mean()) * param.data + param_update
 
                 param_idx += param_size
@@ -131,7 +134,7 @@ class NeuralMemory(nn.Module):
 
         if update_memory:
             # Update memory using surprise mechanism
-            self.update_memory_with_momentum_and_forgetting(keys, values, x)
+            self.update_memory_with_momentum_and_forgetting(keys, values, x) # x original input query
 
         # Return the current memory output (for use in architecture)
         return self.memory_network(keys)

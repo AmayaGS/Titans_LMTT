@@ -47,6 +47,10 @@ def setup_logging(config):
     """Setup logging configs"""
     log_level = getattr(logging, config['logging']['log_level'])
 
+    # Ensure log directory exists before creating FileHandler
+    log_dir = Path(config['paths']['log_dir'])
+    log_dir.mkdir(parents=True, exist_ok=True)
+
     # Use the logs directory from config
     log_file = Path(config['paths']['log_dir']) / f"training_{config['model']['variant']}_{config['data']['dataset']}.log" # would need to update this for different
 
@@ -62,7 +66,7 @@ def setup_logging(config):
 
 def create_directories(config):
     """Create directories for saving data and logs"""
-    for path_key in ['data_dir', 'log_dir']:
+    for path_key in ['data_dir', 'results_dir', 'log_dir']:
         path = Path(config['paths'][path_key])
         path.mkdir(parents=True, exist_ok=True)
         logging.info(f"Created directory: {path}")

@@ -5,8 +5,8 @@ model:
   d_model: 32
   n_heads: 2
   n_layers: 2                    # For baseline transformer
-  vocab_size: 50
-  max_seq_len: 128
+  vocab_size: 10
+  max_seq_len: 96
 
   # Titans-specific configs
   memory_layers: 2               # Depth of neural memory (L_M)
